@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Al-Jamea-tus-Saifiyah Visitor Management</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+  <style>
+    :root {
+      --primary-brown: #3E2723;
+      --secondary-beige: #E8DCC8;
+      --accent-gold: #FFD700;
+      --text-dark: #1B1B1B;
+      --text-light: #FFFFFF;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: var(--secondary-beige);
+      color: var(--text-dark);
+    }
+
+    .page {
+      display: none;
+      min-height: 100vh;
+    }
+
+    .page.active {
+      display: block;
+    }
+
+    .welcome-bg {
+      background-image: url('https://jameasaifiyah.edu/wp-content/uploads/2024/07/AJSM-05BaabShot2_FW.jpg');
+      background-size: cover;
+      background-position: center;
+      background-attachment: fixed;
+    }
+
+    .overlay {
+      background: linear-gradient(135deg, rgba(62, 39, 35, 0.9), rgba(232, 220, 200, 0.7));
+    }
+
+    .btn-primary {
+      background-color: var(--primary-brown);
+      color: var(--text-light);
+      padding: 14px 32px;
+      border: none;
+      border-radius: 8px;
+      font-size: 18px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .btn-primary:hover {
+      background-color: #2c1b18;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .btn-secondary {
+      background-color: var(--secondary-beige);
+      color: var(--primary-brown);
+      padding: 12px 28px;
+      border: 2px solid var(--primary-brown);
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .btn-secondary:hover {
+      background-color: var(--primary-brown);
+      color: var(--text-light);
+    }
+
+    .role-card {
+      background: white;
+      padding: 40px 30px;
+      border-radius: 16px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      border: 3px solid transparent;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .role-card:hover {
+      transform: translateY(-8px);
+      border-color: var(--accent-gold);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    }
+
+    .role-icon {
+      font-size: 64px;
+      margin-bottom: 20px;
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 12px 16px;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      font-size: 16px;
+      transition: border-color 0.3s ease;
+    }
+
+    .form-input:focus {
+      outline: none;
+      border-color: var(--primary-brown);
+    }
+
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      background-color: rgba(0, 0, 0, 0.5);
+    }
+
+    .modal.active {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-content {
+      background-color: white;
+      padding: 30px;
+      border-radius: 16px;
+      max-width: 500px;
+      width: 90%;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    }
+
+    .table-container {
+      overflow-x: auto;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th {
+      background-color: var(--primary-brown);
+      color: var(--text-light);
+      padding: 16px;
+      text-align: left;
+      font-weight: 600;
+    }
+
+    td {
+      padding: 14px 16px;
+      border-bottom: 1px solid #eee;
+    }
+
+    tr:hover {
+      background-color: #f9f9f9;
+    }
+
+    .status-badge {
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .status-checkedin {
+      background-color: #d4edda;
+      color: #155724;
+    }
+
+    .status-checkedout {
+      background-color: #f8d7da;
+      color: #721c24;
+    }
+
+    .stat-card {
+      background: white;
+      padding: 24px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .stat-number {
+      font-size: 36px;
+      font-weight: 700;
+      color: var(--primary-brown);
+    }
+
+    .error-message {
+      background-color: #f8d7da;
+      color: #721c24;
+      padding: 12px;
+      border-radius: 8px;
+      margin-top: 12px;
+      display: none;
+    }
+
+    .success-message {
+      background-color: #d4edda;
+      color: #155724;
+      padding: 12px;
+      border-radius: 8px;
+      margin-top: 12px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Welcome Page -->
+  <div id="welcomePage" class="page active welcome-bg">
+    <div class="overlay min-h-screen flex items-center justify-center px-4">
+      <div class="text-center max-w-3xl">
+        <h1 class="text-5xl md:text-6xl font-bold text-white mb-6 drop-shadow-lg">Welcome to Al-Jamea-tus-Saifiyah</h1>
+        <p class="text-xl md:text-2xl text-white mb-4 drop-shadow">Marol, Mumbai</p>
+        <p class="text-lg md:text-xl text-white mb-12 drop-shadow">Visitor Management System</p>
+        <button class="btn-primary" onclick="navigateTo('roleSelectionPage')">Proceed</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Role Selection Page -->
+  <div id="roleSelectionPage" class="page">
+    <div class="min-h-screen bg-gradient-to-br from-amber-50 to-stone-100 py-12 px-4">
+      <div class="max-w-6xl mx-auto">
+        <div class="text-center mb-12">
+          <h1 class="text-4xl md:text-5xl font-bold mb-4" style="color: var(--primary-brown);">Select Your Role</h1>
+          <p class="text-lg text-gray-600">Please choose the appropriate option to continue</p>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+          <div class="role-card" onclick="navigateTo('adminLoginPage')">
+            <div class="role-icon">🔐</div>
+            <h2 class="text-2xl font-bold mb-2" style="color: var(--primary-brown);">Admin</h2>
+            <p class="text-gray-600">Full access to manage all visitors and system</p>
+          </div>
+          
+          <div class="role-card" onclick="navigateTo('deskLoginPage')">
+            <div class="role-icon">👮</div>
+            <h2 class="text-2xl font-bold mb-2" style="color: var(--primary-brown);">Desk Personnel</h2>
+            <p class="text-gray-600">Monitor current visitors in the vicinity</p>
+          </div>
+          
+          <div class="role-card" onclick="navigateTo('guestRegistrationPage')">
+            <div class="role-icon">📝</div>
+            <h2 class="text-2xl font-bold mb-2" style="color: var(--primary-brown);">Guest Registration</h2>
+            <p class="text-gray-600">Register and schedule your visit</p>
+          </div>
+        </div>
+        
+        <div class="text-center">
+          <button class="btn-secondary" onclick="navigateTo('welcomePage')">← Back to Welcome</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Admin Login Page -->
+  <div id="adminLoginPage" class="page">
+    <div class="min-h-screen bg-gradient-to-br from-amber-50 to-stone-100 flex items-center justify-center px-4">
+      <div class="bg-white p-8 rounded-2xl shadow-2xl max-w-md w-full">
+        <div class="text-center mb-8">
+          <div class="text-6xl mb-4">🔐</div>
+          <h2 class="text-3xl font-bold" style="color: var(--primary-brown);">Admin Login</h2>
+          <p class="text-gray-600 mt-2">Enter your credentials to access the dashboard</p>
+        </div>
+        
+        <form onsubmit="handleAdminLogin(event)">
+          <div class="mb-6">
+            <label class="block text-sm font-semibold mb-2" style="color: var(--primary-brown);">Username</label>
+            <input type="text" id="adminUsername" class="form-input" required>
+          </div>
+          
+          <div class="mb-6">
+            <label class="block text-sm font-semibold mb-2" style="color: var(--primary-brown);">Password</label>
+            <input type="password" id="adminPassword" class="form-input" required>
+          </div>
+          
+          <div id="adminLoginError" class="error-message"></div>
+          
+          <button type="submit" class="btn-primary w-full mb-4">Login</button>
+          <button type="button" class="btn-secondary w-full" onclick="navigateTo('roleSelectionPage')">← Back</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Desk Personnel Login Page -->
+  <div id="deskLoginPage" class="page">
+    <div class="min-h-screen bg-gradient-to-br from-amber-50 to-stone-100 flex items-center justify-center px-4">
+      <div class="bg-white p-8 rounded-2xl shadow-2xl max-w-md w-full">
+        <div class="text-center mb-8">
+          <div class="text-6xl mb-4">👮</div>
+          <h2 class="text-3xl font-bold" style="color: var(--primary-brown);">Desk Personnel Login</h2>
+          <p class="text-gray-600 mt-2">Enter your credentials to access the dashboard</p>
+        </div>
+        
+        <form onsubmit="handleDeskLogin(event)">
+          <div class="mb-6">
+            <label class="block text-sm font-semibold mb-2" style="color: var(--primary-brown);">Username</label>
+            <input type="text" id="deskUsername" class="form-input" required>
+          </div>
+          
+          <div class="mb-6">
+            <label class="block text-sm font-semibold mb-2" style="color: var(--primary-brown);">Password</label>
+            <input type="password" id="deskPassword" class="form-input" required>
+          </div>
+          
+          <div id="deskLoginError" class="error-message"></div>
+          
+          <button type="submit" class="btn-primary w-full mb-4">Login</button>
+          <button type="button" class="btn-secondary w-full" onclick="navigateTo('roleSelectionPage')">← Back</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Admin Dashboard -->
+  <div id="adminDashboard" class="page">
+    <div class="min-h-screen bg-gradient-to-br from-amber-50 to-stone-100">
+      <!-- Header -->
+      <div class="bg-white shadow-md">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+          <h1 class="text-2xl font-bold" style="color: var(--primary-brown);">Admin Dashboard</h1>
+          <button class="btn-secondary" onclick="handleLogout()">Logout</button>
+        </div>
+      </div>
+      
+      <!-- Stats -->
+      <div class="max-w-7xl mx-auto px-4 py-8">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div class="stat-card">
+            <div class="text-sm font-semibold text-gray-600 mb-2">Total Entries Today</div>
+            <div class="stat-number" id="statTotalEntries">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="text-sm font-semibold text-gray-600 mb-2">Currently Present</div>
+            <div class="stat-number" id="statCurrentlyPresent">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="text-sm font-semibold text-gray-600 mb-2">Checked Out</div>
+            <div class="stat-number" id="statCheckedOut">0</div>
+          </div>
+        </div>
+        
+        <!-- Actions -->
+        <div class="flex flex-wrap gap-4 mb-6">
+          <button class="btn-primary" onclick="openAddGuestModal()">➕ Manually Add Guest</button>
+          <button class="btn-secondary" onclick="exportToCSV()">📊 Export to CSV</button>
+          <input type="text" id="searchInput" class="form-input" placeholder="Search by name or mobile..." onkeyup="filterVisitors()" style="max-width: 300px;">
+        </div>
+        
+        <!-- Visitors Table -->
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Mobile</th>
+                <th>Purpose</th>
+                <th>Scheduled Date</th>
+                <th>Check-in Time</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="adminVisitorTable">
+              <!-- Populated by JavaScript -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Desk Personnel Dashboard -->
+  <div id="deskDashboard" class="page">
+    <div class="min-h-screen bg-gradient-to-br from-amber-50 to-stone-100">
+      <!-- Header -->
+      <div class="bg-white shadow-md">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+          <h1 class="text-2xl font-bold" style="color: var(--primary-brown);">Desk Personnel Dashboard</h1>
+          <div class="flex gap-4 items-center">
+            <button class="btn-secondary" onclick="refreshDeskView()">🔄 Refresh</button>
+            <button class="btn-secondary" onclick="handleLogout()">Logout</button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Current Visitors Count -->
+      <div class="max-w-7xl mx-auto px-4 py-8">
+        <div class="stat-card mb-8">
+          <div class="text-sm font-semibold text-gray-600 mb-2">Currently Present in Vicinity</div>
+          <div class="stat-number" id="deskCurrentCount">0</div>
+        </div>
+        
+        <!-- Current Visitors Table -->
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Mobile</th>
+                <th>Check-in Time</th>
+                <th>Purpose</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="deskVisitorTable">
+              <!-- Populated by JavaScript -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Guest Registration Page -->
+  <div id="guestRegistrationPage" class="page">
+    <div class="min-h-screen bg-gradient-to-br from-amber-50 to-stone-100 py-12 px-4">
+      <div class="max-w-2xl mx-auto bg-white p-8 rounded-2xl shadow-2xl">
+        <div class="text-center mb-8">
+          <div class="text-6xl mb-4">📝</div>
+          <h2 class="text-3xl font-bold" style="color: var(--primary-brown);">Guest Registration</h2>
+          <p class="text-gray-600 mt-2">Schedule your visit to Al-Jamea-tus-Saifiyah</p>
+        </div>
+        
+        <form onsubmit="handleGuestRegistration(event)">
+          <div class="mb-6">
+            <label class="block text-sm font-semibold mb-2" style="color: var(--primary-brown);">Full Name *</label>
+            <input type="text" id="guestName" class="form-input" required>
+          </div>
+          
+          <div class="mb-6">
+            <label class="block text-sm font-semibold mb-2" style="color: var(--primary-brown);">Mobile Number *</label>
+            <input type="tel" id="guestMobile" class="form-input" pattern="[0-9]{10}" required>
+          </div>
+          
+          <div class="mb-6">
+            <label class="block text-sm font-semibold mb-2" style="color: var(--primary-brown);">Purpose of Visit *</label>
+            <select id="guestPurpose" class="form-input" onchange="toggleOtherPurpose()" required>
+              <option value="">Select Purpose</option>
+              <option value="Meeting">Meeting</option>
+              <option value="Event">Event</option>
+              <option value="Tours">Tours</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          
+          <div id="otherPurposeContainer" class="mb-6" style="display: none;">
+            <label class="block text-sm font-semibold mb-2" style="color: var(--primary-brown);">Please Specify</label>
+            <input type="text" id="otherPurposeText" class="form-input">
+          </div>
+          
+          <div class="mb-6">
+            <label class="block text-sm font-semibold mb-2" style="color: var(--primary-brown);">Preferred Date of Visit *</label>
+            <input type="date" id="visitDate" class="form-input" required>
+          </div>
+          
+          <div class="mb-6">
+            <label class="block text-sm font-semibold mb-2" style="color: var(--primary-brown);">Preferred Time of Visit *</label>
+            <input type="time" id="visitTime" class="form-input" required>
+          </div>
+          
+          <div class="mb-6">
+            <label class="block text-sm font-semibold mb-2" style="color: var(--primary-brown);">Duration of Stay (hours) *</label>
+            <input type="number" id="visitDuration" class="form-input" min="1" max="12" required>
+          </div>
+          
+          <button type="submit" class="btn-primary w-full mb-4">Generate QR Code &amp; Register</button>
+          <button type="button" class="btn-secondary w-full" onclick="navigateTo('roleSelectionPage')">← Back</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Guest Modal (Admin) -->
+  <div id="addGuestModal" class="modal">
+    <div class="modal-content">
+      <h3 class="text-2xl font-bold mb-6" style="color: var(--primary-brown);">Manually Add Guest</h3>
+      <form onsubmit="handleAddGuest(event)">
+        <div class="mb-4">
+          <label class="block text-sm font-semibold mb-2">Guest Name *</label>
+          <input type="text" id="addGuestName" class="form-input" required>
+        </div>
+        
+        <div class="mb-4">
+          <label class="block text-sm font-semibold mb-2">Mobile Number *</label>
+          <input type="tel" id="addGuestMobile" class="form-input" pattern="[0-9]{10}" required>
+        </div>
+        
+        <div class="mb-4">
+          <label class="block text-sm font-semibold mb-2">Purpose of Visit *</label>
+          <select id="addGuestPurpose" class="form-input" required>
+            <option value="Meeting">Meeting</option>
+            <option value="Event">Event</option>
+            <option value="Tours">Tours</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+        
+        <div class="mb-4">
+          <label class="block text-sm font-semibold mb-2">Scheduled Entry Time *</label>
+          <input type="datetime-local" id="addGuestDateTime" class="form-input" required>
+        </div>
+        
+        <div class="mb-4">
+          <label class="block text-sm font-semibold mb-2">Assigned To (Department/Person)</label>
+          <input type="text" id="addGuestAssignedTo" class="form-input" placeholder="e.g., Administration">
+        </div>
+        
+        <div class="flex gap-4">
+          <button type="submit" class="btn-primary flex-1">Add Guest</button>
+          <button type="button" class="btn-secondary flex-1" onclick="closeAddGuestModal()">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- View Details Modal -->
+  <div id="viewDetailsModal" class="modal">
+    <div class="modal-content">
+      <h3 class="text-2xl font-bold mb-6" style="color: var(--primary-brown);">Visitor Details</h3>
+      <div id="visitorDetailsContent"></div>
+      <button class="btn-secondary w-full mt-6" onclick="closeViewDetailsModal()">Close</button>
+    </div>
+  </div>
+
+  <!-- QR Code Success Modal -->
+  <div id="qrSuccessModal" class="modal">
+    <div class="modal-content text-center">
+      <div class="text-5xl mb-4">✅</div>
+      <h3 class="text-2xl font-bold mb-4" style="color: var(--primary-brown);">Registration Successful!</h3>
+      <p class="text-gray-600 mb-6" id="qrSuccessMessage"></p>
+      <div class="mb-6" id="qrCodeContainer"></div>
+      <div class="flex flex-col gap-4">
+        <button class="btn-primary" onclick="downloadQRCode()">📥 Download QR Code</button>
+        <button class="btn-secondary" onclick="closeQRSuccessModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
