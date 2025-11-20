@@ -1,14 +1,23 @@
-<!DOCTYPE html>
-<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Al-Jamea-tus-Saifiyah Visitor Management</title>
+
+  <!-- UI Framework -->
   <script src="https://cdn.tailwindcss.com"></script>
- <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
-<script>
-  window.QRCode = QRCode;
-</script>
+
+  <!-- QR Code Generator -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+
+  <!-- QR Scanner -->
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+
+  <!-- App Script -->
+  <script type="module" src="./app.js"></script>
+
+  <script>
+    window.QRCode = QRCode;
+  </script>
 
   <style>
     :root {
@@ -157,6 +166,7 @@
       background: white;
       border-radius: 12px;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      width: 100%;
     }
 
     table {
@@ -239,8 +249,8 @@
 }
 
 table {
-    width: 700px;          /* NOT min-width */
-    max-width: 100%; 
+    width: 100%;
+    min-width: 700px;   /* table never collapses, but also grows fully */
 }
 
 td, th {
@@ -362,18 +372,19 @@ td, th {
 
 
 
-<!-- Desk QR Scanner Page -->
-<div id="qrScannerPageDesk" class="page">
-  <div class="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-amber-50 to-stone-100 p-6">
-      <h2 class="text-3xl font-bold mb-6" style="color:var(--primary-brown);">Scan Visitor QR</h2>
+  <!-- Desk QR Scanner Page -->
+  <div id="qrScannerPageDesk" class="page">
+    <div class="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-amber-50 to-stone-100 p-6">
+        <h2 class="text-3xl font-bold mb-6" style="color:var(--primary-brown);">Scan Visitor QR</h2>
 
-      <div id="qr-reader" style="width:300px; max-width:90%;"></div>
+        <div id="qr-reader" style="width:300px; max-width:90%;"></div>
+        <button class="btn-secondary mt-4" onclick="switchCamera()">🔄 Switch Camera</button>
 
-      <p id="qr-reader-results" class="mt-4 text-lg font-semibold"></p>
+        <p id="qr-reader-results" class="mt-4 text-lg font-semibold"></p>
 
-      <button class="btn-secondary mt-6" onclick="secureNavigateTo('deskDashboard')">← Back</button>
+        <button class="btn-secondary mt-6" onclick="secureNavigateTo('deskDashboard')">← Back</button>
+    </div>
   </div>
-</div>
 
 
 
@@ -440,16 +451,19 @@ td, th {
   <div id="deskDashboard" class="page">
     <div class="min-h-screen bg-gradient-to-br from-amber-50 to-stone-100">
       <!-- Header -->
-      <div class="bg-white shadow-md">
-        <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 class="text-2xl font-bold" style="color: var(--primary-brown);">Desk Personnel Dashboard</h1>
-          <div class="flex gap-4 items-center">
-            <button class="btn-secondary" onclick="refreshDeskView()">🔄 Refresh</button>
-            <button class="btn-primary" onclick="openDeskScanner()">📷 Scan QR</button>
-            <button class="btn-secondary" onclick="handleLogout()">Logout</button>
+    <div class="bg-white shadow-md">
+      <div class="max-w-7xl mx-auto w-full px-4 py-4">
+          <div class="flex justify-between items-center w-full flex-wrap gap-4">
+              <h1 class="text-2xl font-bold" style="color: var(--primary-brown);">Desk Personnel Dashboard</h1>
+              <div class="flex gap-4 items-center flex-wrap">
+                  <button class="btn-secondary" onclick="refreshDeskView()">🔄 Refresh</button>
+                  <button class="btn-primary" onclick="openDeskScanner()">📷 Scan QR</button>
+                  <button class="btn-secondary" onclick="handleLogout()">Logout</button>
+              </div>
           </div>
-        </div>
       </div>
+    </div>
+
       
       <!-- Current Visitors Count -->
       <div class="max-w-7xl mx-auto px-4 py-8">
@@ -605,8 +619,7 @@ td, th {
   </div>
 
 
-<script src="https://unpkg.com/html5-qrcode"></script>
 
-  <script type="module" src="app.js"></script>
+
 </body>
 </html>

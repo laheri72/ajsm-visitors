@@ -41,8 +41,9 @@ const auth = getAuth(app);
 let currentUser = null;
 let visitors = [];            // local cache kept in sync by Firestore onSnapshot
 let currentQRDataUrl = null;  // last generated QR data URL (for download)
-let qrScannerInitialized = false;
-let qrScanner;
+let availableCameras = [];
+let currentCameraIndex = 0;
+
 
 /* ===========================
    Utilities / helper functions
@@ -136,7 +137,6 @@ function secureNavigateTo(pageId) {
     return;
   }
   navigateTo(pageId);
-  onNavigate(pageId);
 }
 
 /* ===========================
@@ -571,46 +571,11 @@ function closeAddGuestModal() {
 }
 
 /* ===========================
-   Checkout (unchanged)
+   QR Scanner
    =========================== */
 
-async function checkoutVisitor(visitorId) {
-  try {
-    const q = query(collection(db, "visitors"), where("id", "==", visitorId));
-    const snap = await getDocs(q);
-
-    if (snap.empty) {
-      alert("Visitor not found in database");
-      return;
-    }
-
-    snap.forEach(async (doc) => {
-      const data = doc.data();
-      if (data.status === "checked-out") {
-        alert("Visitor already checked out");
-        return;
-      }
-
-      await updateDoc(doc.ref, {
-        status: "checked-out",
-        checkOutTime: new Date().toISOString()
-      });
-
-      alert("Visitor successfully checked out");
-    });
-  } catch (err) {
-    console.error("Checkout error:", err);
-    alert("Error checking out visitor");
-  }
-}
-
-/* ===========================
-   QR Scanner (unchanged)
-   =========================== */
-let html5QrCode = null;
-
-
-
+let qrScanner = null;
+let qrScannerInitialized = false;
 
 async function handleQRScan(decodedText) {
     const display = document.getElementById("qr-reader-results");
@@ -619,95 +584,139 @@ async function handleQRScan(decodedText) {
     try {
         const qrData = JSON.parse(decodedText);
         await processQRCheckIn(qrData);
-        display.innerText = "✅ Check-in successful!";
     } catch (err) {
         display.innerText = "❌ Invalid QR code";
+        return;
     }
 
-    try { 
-        await qrScanner.stop(); 
+    try {
+        await qrScanner.stop();
     } catch (_) {}
+
+    display.innerText = "✅ Check-in successful!";
 }
 
 
-
+/* -- OPEN SCANNER (DESK) -- */
 function openDeskScanner() {
     secureNavigateTo("qrScannerPageDesk");
 
-    // Delay to allow page to become visible
-    setTimeout(() => {
-        if (!qrScannerInitialized) {
-            qrScanner = new Html5Qrcode("qr-reader");
-
-            Html5Qrcode.getCameras()
-                .then(cameras => {
-                    if (!cameras || cameras.length === 0) {
-                        alert("No cameras found on this device.");
-                        return;
-                    }
-
-                    qrScanner.start(
-                        cameras[0].id,
-                        { fps: 10, qrbox: 250 },
-                        qrData => handleQRScan(qrData),
-                        () => {}
-                    );
-
-                    qrScannerInitialized = true;
-                })
-                .catch(err => { 
-                    alert("Camera permission denied or unavailable.");
-                    console.error(err);
-                });
-        }
-    }, 300);
+    // Wait until new page is actually visible
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            initializeDeskScanner();
+        });
+    });
 }
 
 
+function initializeDeskScanner() {
+    if (qrScannerInitialized) return;
 
+    const element = document.getElementById("qr-reader");
 
-
-
-async function processQRCheckIn(qrData) {
-  const resultsEl = document.getElementById("qr-reader-results");
-
-  const now = new Date();
-  const expiry = new Date(qrData.validUntil);
-
-  if (now > expiry) {
-    resultsEl.innerText = "❌ QR Code Expired";
-    return;
-  }
-
-  const q = query(collection(db, "visitors"), where("id", "==", qrData.id));
-  const snap = await getDocs(q);
-
-  if (snap.empty) {
-    resultsEl.innerText = "❌ Visitor not found";
-    return;
-  }
-
-  let already = false;
-  for (const doc of snap.docs) {
-    if (doc.data().status === "checked-in") {
-      already = true;
-      break;
+    if (!element) {
+        alert("❌ Scanner element missing.");
+        return;
     }
-  }
 
-  if (already) {
-    resultsEl.innerText = "⚠️ Already checked in";
-    return;
-  }
+    qrScanner = new Html5Qrcode("qr-reader");
 
-  for (const doc of snap.docs) {
-    await updateDoc(doc.ref, {
-      status: "checked-in",
-      checkInTime: new Date().toISOString()
+    Html5Qrcode.getCameras()
+        .then(cameras => {
+        availableCameras = cameras;   // ← store
+        currentCameraIndex = 0;
+            if (!cameras || cameras.length === 0) {
+                alert("❌ No cameras found on this device.");
+                return;
+            }
+
+            qrScanner.start(
+                cameras[0].id,
+                { fps: 10, qrbox: 250 },
+                qrData => handleQRScan(qrData)
+            );
+
+            qrScannerInitialized = true;
+        })
+        .catch(err => {
+            alert("❌ Camera permission denied or unavailable.\nCheck browser settings.");
+            console.error(err);
+        });
+}
+
+
+async function switchCamera() {
+    if (!qrScanner || availableCameras.length === 0) {
+        alert("No cameras available.");
+        return;
+    }
+
+    try {
+        await qrScanner.stop();
+    } catch (_) {}
+
+    currentCameraIndex = (currentCameraIndex + 1) % availableCameras.length;
+
+    qrScanner.start(
+        availableCameras[currentCameraIndex].id,
+        { fps: 10, qrbox: 250 },
+        qrData => handleQRScan(qrData)
+    );
+
+    alert("Camera switched");
+}
+
+/* ----------------------------
+   CHECK-IN LOGIC WITH VALIDATION
+   ---------------------------- */
+async function processQRCheckIn(qrData) {
+    // Query instead of doc() because visitors use auto-ID
+    const q = query(
+        collection(db, "visitors"),
+        where("id", "==", qrData.id)
+    );
+
+    const snap = await getDocs(q);
+
+    if (snap.empty) {
+        alert("❌ Invalid QR: Visitor not found.");
+        return;
+    }
+
+    const docRef = snap.docs[0].ref;
+    const data = snap.docs[0].data();
+
+    const today = new Date().toISOString().split("T")[0];
+
+    // ---- DATE VALIDATION ----
+    if (data.scheduledDate !== today) {
+        alert(`❌ Wrong date.\nScheduled for: ${data.scheduledDate}`);
+        return;
+    }
+
+    // ---- TIME VALIDATION ----
+    const now = new Date();
+    const start = new Date(`${data.scheduledDate}T${data.scheduledTime}`);
+
+    if (now < start) {
+        alert(`⏳ Too early to check-in.\nAllowed after: ${data.scheduledTime}`);
+        return;
+    }
+
+    // ---- Already Checked-in ----
+    if (data.status === "checked-in") {
+        alert("ℹ Already checked in.");
+        return;
+    }
+
+    // ---- CHECK-IN ----
+    await updateDoc(docRef, {
+        status: "checked-in",
+        checkInTime: now.toISOString()
     });
-  }
 
-  resultsEl.innerText = "✅ Check-in successful!";
+    alert("✅ Check-in successful");
 }
 
 
@@ -725,6 +734,37 @@ function toggleOtherPurpose() {
   } else {
     otherContainer.style.display = 'none';
     document.getElementById('otherPurposeText').required = false;
+  }
+}
+
+async function checkoutVisitor(visitorId) {
+  try {
+    const q = query(collection(db, "visitors"), where("id", "==", visitorId));
+    const snap = await getDocs(q);
+
+    if (snap.empty) {
+      alert("Visitor not found.");
+      return;
+    }
+
+    const docRef = snap.docs[0].ref;
+    const data = snap.docs[0].data();
+
+    // 🚫 Prevent checkout if not checked-in
+    if (data.status !== "checked-in") {
+      alert("❌ Cannot check-out. Visitor is not checked in.");
+      return;
+    }
+
+    await updateDoc(docRef, {
+      status: "checked-out",
+      checkOutTime: new Date().toISOString()
+    });
+
+    alert("Visitor checked out successfully.");
+  } catch (err) {
+    console.error("Checkout error:", err);
+    alert("Failed to check out visitor.");
   }
 }
 
