@@ -227,6 +227,27 @@
       border-radius: 8px;
       margin-top: 12px;
     }
+#deskVisitorTable {
+    display: table-row-group !important;
+}
+
+.table-container {
+    overflow-x: auto !important;
+    overflow-y: visible !important;
+    width: 100% !important;
+    min-height: 150px !important;
+}
+
+table {
+    width: 700px;          /* NOT min-width */
+    max-width: 100%; 
+}
+
+td, th {
+    white-space: nowrap;   /* prevents table collapsing */
+}
+
+
   </style>
 </head>
 <body>
@@ -340,7 +361,8 @@
   </div>
 
 
-  <!-- Desk QR Scanner Page -->
+
+<!-- Desk QR Scanner Page -->
 <div id="qrScannerPageDesk" class="page">
   <div class="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-amber-50 to-stone-100 p-6">
       <h2 class="text-3xl font-bold mb-6" style="color:var(--primary-brown);">Scan Visitor QR</h2>
@@ -352,6 +374,7 @@
       <button class="btn-secondary mt-6" onclick="secureNavigateTo('deskDashboard')">← Back</button>
   </div>
 </div>
+
 
 
   <!-- Admin Dashboard -->
@@ -422,7 +445,7 @@
           <h1 class="text-2xl font-bold" style="color: var(--primary-brown);">Desk Personnel Dashboard</h1>
           <div class="flex gap-4 items-center">
             <button class="btn-secondary" onclick="refreshDeskView()">🔄 Refresh</button>
-            <button class="btn-primary" onclick="secureNavigateTo('qrScannerPageDesk')">📷 Scan QR</button>
+            <button class="btn-primary" onclick="openDeskScanner()">📷 Scan QR</button>
             <button class="btn-secondary" onclick="handleLogout()">Logout</button>
           </div>
         </div>
@@ -581,23 +604,6 @@
     </div>
   </div>
 
-  <!-- QR Scanner Page -->
-<div id="qrScannerPage" class="page">
-  <div class="min-h-screen bg-gradient-to-br from-amber-50 to-stone-100 py-12 px-4">
-    <div class="max-w-2xl mx-auto bg-white p-8 rounded-2xl shadow-2xl">
-      <div class="text-center mb-8">
-        <div class="text-6xl mb-4">📷</div>
-        <h2 class="text-3xl font-bold" style="color: var(--primary-brown);">Scan Visitor QR Code</h2>
-        <p class="text-gray-600 mt-2">Align the QR code inside the frame</p>
-      </div>
-
-      <div id="qr-reader" style="width:100%;"></div>
-      <div id="qr-reader-results" class="mt-4 text-center text-green-700 font-semibold"></div>
-
-      <button class="btn-secondary w-full mt-6" onclick="secureNavigateTo('deskDashboard')">← Back</button>
-    </div>
-  </div>
-</div>
 
 <script src="https://unpkg.com/html5-qrcode"></script>
 

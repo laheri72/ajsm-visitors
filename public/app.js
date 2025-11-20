@@ -41,6 +41,8 @@ const auth = getAuth(app);
 let currentUser = null;
 let visitors = [];            // local cache kept in sync by Firestore onSnapshot
 let currentQRDataUrl = null;  // last generated QR data URL (for download)
+let qrScannerInitialized = false;
+let qrScanner;
 
 /* ===========================
    Utilities / helper functions
@@ -297,7 +299,9 @@ function updateAdminDashboard() {
 }
 
 function updateDeskDashboard() {
-  const currentVisitors = visitors.filter(v => v.status === 'checked-in');
+  const currentVisitors = visitors.filter(v =>
+  v.status === 'checked-in' || v.status === 'scheduled'
+);
   const deskCountEl = document.getElementById("deskCurrentCount");
   if (deskCountEl) deskCountEl.textContent = currentVisitors.length;
 
@@ -605,76 +609,64 @@ async function checkoutVisitor(visitorId) {
    =========================== */
 let html5QrCode = null;
 
-async function startQRScannerDesk() {
-  const qrRegion = document.getElementById("qr-reader");
-  const resultsEl = document.getElementById("qr-reader-results");
 
-  if (!qrRegion) return;
 
-  try {
-    const cameras = await Html5Qrcode.getCameras();
-    if (!cameras.length) {
-      resultsEl.innerText = "❌ No camera found";
-      return;
+
+async function handleQRScan(decodedText) {
+    const display = document.getElementById("qr-reader-results");
+    display.innerText = "QR detected. Checking visitor…";
+
+    try {
+        const qrData = JSON.parse(decodedText);
+        await processQRCheckIn(qrData);
+        display.innerText = "✅ Check-in successful!";
+    } catch (err) {
+        display.innerText = "❌ Invalid QR code";
     }
 
-    const back = cameras.find(c => c.label.toLowerCase().includes("back"))
-                || cameras[0];
+    try { 
+        await qrScanner.stop(); 
+    } catch (_) {}
+}
 
-    html5QrCode = new Html5Qrcode("qr-reader");
 
-    await html5QrCode.start(
-      back.id,
-      { fps: 10, qrbox: 250 },
-      async (decoded) => {
-        resultsEl.innerText = "QR detected, checking…";
 
-        try {
-          const qrData = JSON.parse(decoded);
-          await processQRCheckIn(qrData);
+function openDeskScanner() {
+    secureNavigateTo("qrScannerPageDesk");
 
-          // Vibrate on mobile
-          if (navigator.vibrate) navigator.vibrate(150);
+    // Delay to allow page to become visible
+    setTimeout(() => {
+        if (!qrScannerInitialized) {
+            qrScanner = new Html5Qrcode("qr-reader");
 
-          resultsEl.innerText = "✅ Visitor Checked-In Successfully";
+            Html5Qrcode.getCameras()
+                .then(cameras => {
+                    if (!cameras || cameras.length === 0) {
+                        alert("No cameras found on this device.");
+                        return;
+                    }
 
-          setTimeout(() => {
-            secureNavigateTo('deskDashboard');
-          }, 1500);
-        } catch (e) {
-          resultsEl.innerText = "❌ Invalid QR";
+                    qrScanner.start(
+                        cameras[0].id,
+                        { fps: 10, qrbox: 250 },
+                        qrData => handleQRScan(qrData),
+                        () => {}
+                    );
+
+                    qrScannerInitialized = true;
+                })
+                .catch(err => { 
+                    alert("Camera permission denied or unavailable.");
+                    console.error(err);
+                });
         }
-
-        html5QrCode.stop();
-      },
-      () => {}
-    );
-
-  } catch (err) {
-    resultsEl.innerText = "⚠️ Camera permission denied";
-  }
+    }, 300);
 }
 
 
-async function handleDecodeSuccess(decodedText) {
-  const resultsEl = document.getElementById("qr-reader-results");
-  resultsEl.innerText = "QR detected, verifying…";
 
-  try {
-    const qrData = JSON.parse(decodedText);
-    await processQRCheckIn(qrData);
-  } catch (e) {
-    resultsEl.innerText = "❌ Invalid QR code";
-  }
 
-  try {
-    await html5QrCode.stop();
-  } catch (_) {}
-}
 
-function handleDecodeFailure(error) {
-  // ignore scan failures (normal)
-}
 
 async function processQRCheckIn(qrData) {
   const resultsEl = document.getElementById("qr-reader-results");
@@ -718,19 +710,6 @@ async function processQRCheckIn(qrData) {
   resultsEl.innerText = "✅ Check-in successful!";
 }
 
-
-function stopQRScanner() {
-  if (!html5QrCode) return;
-  html5QrCode.stop().then(()=>{}).catch(()=>{});
-}
-
-function onNavigate(pageId) {
-if (pageId === "qrScannerPageDesk") {
-    startQRScannerDesk();
-  } else {
-    stopQRScanner();
-  }
-}
 
 /* ===========================
    Small UX helpers (unchanged)
@@ -803,6 +782,9 @@ window.closeViewDetailsModal = closeViewDetailsModal;
 window.refreshDeskView = () => updateDeskDashboard();
 window.checkoutVisitor = checkoutVisitor;
 window.deleteVisitor = deleteVisitor;
+window.openDeskScanner = openDeskScanner;
+window.handleQRScan = handleQRScan;
+window.processQRCheckIn = processQRCheckIn;
 
 
 /* ===========================
