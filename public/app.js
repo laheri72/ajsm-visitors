@@ -285,6 +285,7 @@ function updateAdminDashboard() {
       <td>${visitor.id || ''}</td>
       <td>${visitor.name || ''}</td>
       <td>${visitor.mobile || ''}</td>
+      <td>${visitor.cardNumber || 'Not Issued'}</td>
       <td>${visitor.purpose || 'N/A'}</td>
       <td>${visitor.scheduledDate || 'N/A'}</td>
       <td>${formatDateTime(visitor.checkInTime)}</td>
@@ -300,8 +301,7 @@ function updateAdminDashboard() {
 
 function updateDeskDashboard() {
   const currentVisitors = visitors.filter(v =>
-  v.status === 'checked-in' || v.status === 'scheduled'
-);
+  v.status === 'checked-in');
   const deskCountEl = document.getElementById("deskCurrentCount");
   if (deskCountEl) deskCountEl.textContent = currentVisitors.length;
 
@@ -321,6 +321,7 @@ function updateDeskDashboard() {
     row.innerHTML = `
       <td>${visitor.name}</td>
       <td>${visitor.mobile}</td>
+      <td>${visitor.cardNumber || "-"}</td>
       <td>${formatDateTime(visitor.checkInTime)}</td>
       <td>${visitor.purpose || 'N/A'}</td>
       <td><button class="btn-secondary" onclick="checkoutVisitor('${visitor.id}')">Check-Out</button></td>
@@ -631,11 +632,20 @@ function initializeDeskScanner() {
                 return;
             }
 
-            qrScanner.start(
-                cameras[0].id,
-                { fps: 10, qrbox: 250 },
-                qrData => handleQRScan(qrData)
-            );
+            // Prefer back camera if exists
+            const backCam = cameras.find(cam =>
+            cam.label.toLowerCase().includes("back") ||
+            cam.label.toLowerCase().includes("environment")
+        );
+
+        const selectedCam = backCam || cameras[0]; // fallback to first if no back cam
+
+        qrScanner.start(
+            selectedCam.id,
+            { fps: 10, qrbox: 250 },
+            qrData => handleQRScan(qrData)
+        );
+
 
             qrScannerInitialized = true;
         })
@@ -710,11 +720,22 @@ async function processQRCheckIn(qrData) {
         return;
     }
 
-    // ---- CHECK-IN ----
-    await updateDoc(docRef, {
-        status: "checked-in",
-        checkInTime: now.toISOString()
-    });
+      // Ask desk person to assign card number
+      const cardNumber = prompt("Enter issued card number (RFID):");
+
+      if (!cardNumber || cardNumber.trim() === "") {
+          alert("❌ Card number is required for check-in.");
+          return;
+      }
+
+      await updateDoc(docRef, {
+          status: "checked-in",
+          cardNumber,
+          checkInTime: now.toISOString()
+      });
+
+      alert(`✅ Check-in successful\nAssigned Card: ${cardNumber}`);
+
 
     alert("✅ Check-in successful");
 }
