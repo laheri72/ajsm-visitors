@@ -1,0 +1,44 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Global theme colors (from old VMS) */
+:root {
+  --primary-brown: #3E2723;
+  --secondary-beige: #E8DCC8;
+  --accent-gold: #FFD700;
+  --text-dark: #1B1B1B;
+  --text-light: #FFFFFF;
+}
+
+body {
+  background-color: var(--secondary-beige);
+  color: var(--text-dark);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+@layer components {
+  .btn-primary {
+    @apply px-10 py-4 rounded-xl text-xl font-semibold shadow-lg transition;
+    background-color: var(--secondary-beige);
+    color: var(--primary-brown);
+  }
+
+  .btn-primary:hover {
+    background-color: #f3ead8;
+  }
+
+  .btn-secondary {
+    @apply px-8 py-3 rounded-lg text-lg font-medium transition;
+    background-color: var(--primary-brown);
+    color: var(--text-light);
+  }
+
+  .btn-secondary:hover {
+    background-color: #2c1b18;
+  }
+}
+.card {
+  @apply bg-white rounded-2xl shadow-md p-6;
+  border: 2px solid var(--primary-brown);
+} 
