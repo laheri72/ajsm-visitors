@@ -13,7 +13,7 @@ interface Card {
   status: string;
 }
 
-export default function AdminCardsTable() {
+export default function AdminCardsTable({ visitorMap }: { visitorMap: Record<string, string> }) {
   const [cards, setCards] = useState<Card[]>([]);
 
   useEffect(() => {
@@ -66,7 +66,7 @@ export default function AdminCardsTable() {
                   {c.cardNumber}
                 </td>
                 <td className="border p-2">
-                  {c.assignedTo ?? "-"}
+                  {c.assignedTo ? visitorMap[c.assignedTo] : "-"}
                 </td>
                 <td className="border p-2 flex gap-2">
                   <button

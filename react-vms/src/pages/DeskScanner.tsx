@@ -16,7 +16,6 @@ export default function DeskScanner() {
 
   useEffect(() => {
     let isMounted = true;
-    startedRef.current = true;
 
     async function startScanner() {
       const elementId = "qr-reader";
@@ -24,7 +23,7 @@ export default function DeskScanner() {
       // Wait one tick to ensure DOM exists
       await new Promise((r) => setTimeout(r, 0));
 
-      if (!isMounted || startedRef.current) return;
+      if (!isMounted) return;
 
       try {
         const scanner = new Html5Qrcode(elementId);

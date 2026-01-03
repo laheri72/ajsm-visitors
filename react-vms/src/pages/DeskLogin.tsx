@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { login } from "../services/auth.service";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -11,9 +11,11 @@ export default function DeskLogin() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
-  if (role === "DESK") {
-    navigate("/desk");
-  }
+  useEffect(() => {
+    if (role === "DESK") {
+      navigate("/desk");
+    }
+  }, [role, navigate]);
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();

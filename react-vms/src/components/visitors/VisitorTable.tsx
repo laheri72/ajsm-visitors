@@ -1,44 +1,76 @@
+import { useState } from "react";
 import type { Visitor } from "../../models/Visitor";
-import { checkInVisitor, checkOutVisitor } from "../../services/visitor.service";
+import { checkInVisitor, checkOutVisitor, deleteVisitor } from "../../services/visitor.service";
 import {
   validateCheckIn,
-  validateCheckOut,
 } from "../../utils/checkInValidator";
 import { generateCardNumber } from "../../services/visitor.service";
 import { activateCard } from "../../services/card.service";
-import { releaseCard } from "../../services/card.service";
 
 
 
 
 interface Props {
   visitors: Visitor[];
+  isAdmin?: boolean;
 }
 
-export default function VisitorTable({ visitors }: Props) {
+export default function VisitorTable({ visitors, isAdmin = false }: Props) {
+  const [processingId, setProcessingId] = useState<string | null>(null);
+
   async function handleCheckIn(visitor: Visitor) {
+    if (processingId === visitor.id) return;
+
     const error = validateCheckIn(visitor);
     if (error) {
       alert(error);
       return;
     }
 
-    const cardNumber = await generateCardNumber();
-  
-
-    await checkInVisitor(visitor.id, cardNumber);
-    await activateCard(cardNumber, visitor.id);
-
-    if (!cardNumber) {
-      alert("Card number is required.");
-      return;
-    }
-
+    setProcessingId(visitor.id);
     try {
+      const cardNumber = await generateCardNumber();
+      if (!cardNumber) {
+        alert("Card number is required.");
+        return;
+      }
+
       await checkInVisitor(visitor.id, cardNumber);
       await activateCard(cardNumber, visitor.id);
-    } catch (err) {
+    } catch {
       alert("Failed to check in visitor.");
+    } finally {
+      setProcessingId(null);
+    }
+  }
+
+  async function handleCheckOut(visitor: Visitor) {
+    if (processingId === visitor.id) return;
+
+    setProcessingId(visitor.id);
+    try {
+      await checkOutVisitor(visitor.id);
+      alert("Visitor checked out");
+    } catch {
+      alert("Failed to check out");
+    } finally {
+      setProcessingId(null);
+    }
+  }
+
+  async function handleDelete(visitor: Visitor) {
+    if (
+      !confirm(
+        `Delete visitor ${visitor.name}? This cannot be undone.`
+      )
+    )
+      return;
+
+    try {
+      await deleteVisitor(visitor);
+      alert("Visitor deleted");
+    } catch (e: any) {
+      alert(e.message);
     }
   }
 
@@ -53,6 +85,7 @@ export default function VisitorTable({ visitors }: Props) {
           <th className="border p-2">Time</th>
           <th className="border p-2">Status</th>
           <th className="border p-2">Action</th>
+          {isAdmin && <th className="border p-2">Admin</th>}
         </tr>
       </thead>
 
@@ -68,6 +101,7 @@ export default function VisitorTable({ visitors }: Props) {
             <td className="border p-2">
               {v.status === "scheduled" && (
                 <button
+                  disabled={processingId === v.id}
                   onClick={() => handleCheckIn(v)}
                   className="bg-green-600 text-white px-3 py-1 rounded"
                 >
@@ -77,6 +111,7 @@ export default function VisitorTable({ visitors }: Props) {
 
               {v.status === "checked-in" && (
                 <button
+                  disabled={processingId === v.id}
                   onClick={() => handleCheckOut(v)}
                   className="bg-blue-600 text-white px-3 py-1 rounded"
                 >
@@ -86,29 +121,20 @@ export default function VisitorTable({ visitors }: Props) {
 
               {v.status === "checked-out" && "-"}
             </td>
+            {isAdmin && (
+              <td className="border p-2">
+                <button
+                  onClick={() => handleDelete(v)}
+                  className="text-red-600 text-sm underline"
+                >
+                  Delete
+                </button>
+              </td>
+            )}
           </tr>
         ))}
       </tbody>
     </table>
   );
-}
-
-async function handleCheckOut(visitor: Visitor) {
-  const error = validateCheckOut(visitor);
-  if (error) {
-    alert(error);
-    return;
-  }
-
-  if (!confirm("Confirm check-out?")) return;
-
-  try {
-    await checkOutVisitor(visitor.id);
-    if (visitor.cardNumber) {
-  await releaseCard(visitor.cardNumber);
-}
-  } catch {
-    alert("Failed to check out visitor.");
-  }
 }
 

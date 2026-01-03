@@ -8,7 +8,7 @@ interface Card {
   assignedAt: any;
 }
 
-export default function ActiveCardsTable() {
+export default function ActiveCardsTable({ visitorMap }: { visitorMap: Record<string, string> }) {
   const [cards, setCards] = useState<Card[]>([]);
 
   useEffect(() => {
@@ -31,7 +31,7 @@ export default function ActiveCardsTable() {
           <thead className="bg-gray-100">
             <tr>
               <th className="border p-2">Card</th>
-              <th className="border p-2">Visitor ID</th>
+              <th className="border p-2">Visitor</th>
               <th className="border p-2">Issued At</th>
             </tr>
           </thead>
@@ -42,7 +42,7 @@ export default function ActiveCardsTable() {
                   {c.cardNumber}
                 </td>
                 <td className="border p-2">
-                  {c.assignedTo}
+                  {visitorMap[c.assignedTo] || "-"}
                 </td>
                 <td className="border p-2">
                   {c.assignedAt?.toDate

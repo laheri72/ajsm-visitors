@@ -1,19 +1,24 @@
+import { useState } from "react";
 import { logout } from "../services/auth.service";
 import { useVisitors } from "../hooks/useVisitors";
 import VisitorTable from "../components/visitors/VisitorTable";
 import AdminCardsTable from "../components/cards/AdminCardsTable";
+import AdminAddGuestModal from "../components/admin/AdminAddGuestModal";
 
 export default function AdminDashboard() {
   const { visitors, loading } = useVisitors();
 
+  const visitorMap = Object.fromEntries(
+    visitors.map(v => [v.id, v.name])
+  );
+
+  const [showAddGuest, setShowAddGuest] = useState(false);
+
   /* ================= ADMIN ACTION HANDLERS ================= */
 
-  function handleDeleteVisitor() {
-    alert("Delete Visitor – to be implemented (admin only)");
-  }
 
   function handleManualAdd() {
-    alert("Manual Guest Add – modal will be added next");
+    setShowAddGuest(true);
   }
 
   function handleForceCheckout() {
@@ -115,25 +120,20 @@ export default function AdminDashboard() {
             + Add Guest
           </button>
 
-          <button
-            onClick={handleForceCheckout}
-            className="btn-primary text-sm"
-          >
-            Force Check-out
-          </button>
 
-          <button
-            onClick={handleDeleteVisitor}
-            className="btn-primary text-sm"
-          >
-            Delete Visitor
-          </button>
 
           <button
             onClick={() => exportVisitorsToCSV(visitors)}
             className="btn-primary text-sm"
           >
             Export CSV
+          </button>
+
+                    <button
+            onClick={handleForceCheckout}
+            className="btn-primary text-sm"
+          >
+            Force Check-out
           </button>
 
         </div>
@@ -149,15 +149,21 @@ export default function AdminDashboard() {
           <p className="text-gray-600">Loading visitors…</p>
         ) : (
           <div className="overflow-x-auto">
-            <VisitorTable visitors={visitors} />
+            <VisitorTable visitors={visitors} isAdmin={true} />
           </div>
         )}
       </div>
 
       {/* Card Management */}
       <div className="bg-white rounded-xl shadow-md p-4 md:p-6">
-        <AdminCardsTable />
+        <AdminCardsTable visitorMap={visitorMap} />
       </div>
+
+      {showAddGuest && (
+        <AdminAddGuestModal
+          onClose={() => setShowAddGuest(false)}
+        />
+      )}
     </div>
   );
 }

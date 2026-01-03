@@ -28,6 +28,7 @@ import {
   doc,
   updateDoc,
   serverTimestamp,
+  deleteDoc,
 } from "firebase/firestore";
 
 export async function checkInVisitor(
@@ -44,11 +45,36 @@ export async function checkInVisitor(
 }
 
 export async function checkOutVisitor(visitorId: string) {
-  const ref = doc(db, "visitors", visitorId);
+  await runTransaction(db, async (tx) => {
+    const visitorRef = doc(db, "visitors", visitorId);
+    const visitorSnap = await tx.get(visitorRef);
 
-  await updateDoc(ref, {
-    status: "checked-out",
-    checkOutTime: serverTimestamp(),
+    if (!visitorSnap.exists()) {
+      throw new Error("Visitor not found");
+    }
+
+    const visitor = visitorSnap.data();
+
+    if (visitor.status !== "checked-in") {
+      throw new Error("Visitor not checked in");
+    }
+
+    // 1️⃣ Update visitor
+    tx.update(visitorRef, {
+      status: "checked-out",
+      checkOutTime: serverTimestamp(),
+    });
+
+    // 2️⃣ Release card IF assigned
+    if (visitor.cardNumber) {
+      const cardRef = doc(db, "cards", visitor.cardNumber);
+
+      tx.update(cardRef, {
+        status: "available",
+        assignedTo: null,
+        releasedAt: serverTimestamp(),
+      });
+    }
   });
 }
 
@@ -64,6 +90,14 @@ export async function getVisitorById(visitorId: string) {
     id: snap.id,
     ...(snap.data() as any),
   };
+}
+
+export async function deleteVisitor(visitor: any) {
+  if (visitor.status === "checked-in") {
+    throw new Error("Cannot delete checked-in visitor");
+  }
+
+  await deleteDoc(doc(db, "visitors", visitor.id));
 }
 
 import {
