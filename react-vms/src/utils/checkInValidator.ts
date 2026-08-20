@@ -1,13 +1,14 @@
 import type { Visitor } from "../models/Visitor";
+import { getTodayDateString } from "./dateUtils";
 
 export function validateCheckIn(visitor: Visitor): string | null {
   if (visitor.status !== "scheduled") {
     return "Visitor is not scheduled for check-in.";
   }
 
-  const today = new Date().toISOString().split("T")[0];
+  const today = getTodayDateString();
   if (visitor.scheduledDate !== today) {
-    return "Visitor is not scheduled for today.";
+    return `Visitor is scheduled for ${visitor.scheduledDate}, not today (${today}).`;
   }
 
   const now = new Date();

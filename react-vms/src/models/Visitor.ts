@@ -7,6 +7,7 @@ export interface Visitor {
   id: string;
   name: string;
   mobile: string;
+  email: string;
   purpose: string;
 
   scheduledDate: string;
