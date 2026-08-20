@@ -64,17 +64,9 @@ export async function createVisitor(
   if (mobSnap.exists()) {
     const lockData = mobSnap.data();
     if (lockData.expiresAt > Date.now()) {
-      if (lockData.visitorId) {
-        const linkedVisitorSnap = await getDoc(doc(db, "visitors", lockData.visitorId));
-        if (linkedVisitorSnap.exists()) {
-          throw new Error(
-            `A registration with mobile number (${cleanMobile}) already exists within the last 24 hours. Multiple registrations within 24 hours are prohibited by policy.`
-          );
-        } else {
-          // Linked visitor was deleted by Admin -> clean up stale lock
-          await deleteDoc(mobileBarricadeRef).catch(() => {});
-        }
-      }
+      throw new Error(
+        `A registration with mobile number (${cleanMobile}) already exists within the last 24 hours. Multiple registrations within 24 hours are prohibited by policy.`
+      );
     }
   }
 
@@ -83,17 +75,9 @@ export async function createVisitor(
   if (emailSnap.exists()) {
     const lockData = emailSnap.data();
     if (lockData.expiresAt > Date.now()) {
-      if (lockData.visitorId) {
-        const linkedVisitorSnap = await getDoc(doc(db, "visitors", lockData.visitorId));
-        if (linkedVisitorSnap.exists()) {
-          throw new Error(
-            `A registration with email address (${cleanEmail}) already exists within the last 24 hours. Multiple registrations within 24 hours are prohibited by policy.`
-          );
-        } else {
-          // Linked visitor was deleted by Admin -> clean up stale lock
-          await deleteDoc(emailBarricadeRef).catch(() => {});
-        }
-      }
+      throw new Error(
+        `A registration with email address (${cleanEmail}) already exists within the last 24 hours. Multiple registrations within 24 hours are prohibited by policy.`
+      );
     }
   }
 
@@ -105,25 +89,19 @@ export async function createVisitor(
 
     if (mobLockSnap.exists()) {
       const lockData = mobLockSnap.data();
-      if (lockData.expiresAt > Date.now() && lockData.visitorId) {
-        const linkedVisitorSnap = await tx.get(doc(db, "visitors", lockData.visitorId));
-        if (linkedVisitorSnap.exists()) {
-          throw new Error(
-            `A registration lock for mobile ${cleanMobile} is active. Please wait 24 hours before registering again.`
-          );
-        }
+      if (lockData.expiresAt > Date.now()) {
+        throw new Error(
+          `A registration lock for mobile (${cleanMobile}) is active within the last 24 hours. Multiple registrations within 24 hours are prohibited by policy.`
+        );
       }
     }
 
     if (emailLockSnap.exists()) {
       const lockData = emailLockSnap.data();
-      if (lockData.expiresAt > Date.now() && lockData.visitorId) {
-        const linkedVisitorSnap = await tx.get(doc(db, "visitors", lockData.visitorId));
-        if (linkedVisitorSnap.exists()) {
-          throw new Error(
-            `A registration lock for email ${cleanEmail} is active. Please wait 24 hours before registering again.`
-          );
-        }
+      if (lockData.expiresAt > Date.now()) {
+        throw new Error(
+          `A registration lock for email (${cleanEmail}) is active within the last 24 hours. Multiple registrations within 24 hours are prohibited by policy.`
+        );
       }
     }
 
