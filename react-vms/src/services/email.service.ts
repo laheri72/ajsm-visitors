@@ -11,8 +11,8 @@ export interface EmailDeliveryResult {
 
 // EmailJS Environment Variables
 const EMAILJS_SERVICE_ID = (import.meta.env.VITE_EMAILJS_SERVICE_ID as string) || "service_23ldqm8";
-const EMAILJS_TEMPLATE_ID = (import.meta.env.VITE_EMAILJS_TEMPLATE_ID as string) || "";
-const EMAILJS_PUBLIC_KEY = (import.meta.env.VITE_EMAILJS_PUBLIC_KEY as string) || "";
+const EMAILJS_TEMPLATE_ID = (import.meta.env.VITE_EMAILJS_TEMPLATE_ID as string) || "template_iuhy5p4";
+const EMAILJS_PUBLIC_KEY = (import.meta.env.VITE_EMAILJS_PUBLIC_KEY as string) || "KBZ0nhC6oDfo2WIq8";
 
 /**
  * Delivers visitor pass and QR code email via EmailJS (connected to vms.ajsm@gmail.com)
